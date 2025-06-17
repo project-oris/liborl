@@ -1,2 +1,11 @@
 drivers/test_cc
 drivers/dev_cc
+drivers/build
+*.engine
+*.onnx
+*.pb
+*.pt
+*.png
+*.mp4
+ros_ws/
+rostest/
