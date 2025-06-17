@@ -1,8 +1,10 @@
 drivers/test_cc
 drivers/dev_cc
 drivers/build
+dev_ws/
 *.engine
 *.onnx
+*.so
 *.pb
 *.pt
 *.png

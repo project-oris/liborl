@@ -28,7 +28,7 @@ include_directories( ${OpenCV_INCLUDE_DIRS} )
 find_package( CUDAToolkit REQUIRED )
 include_directories( ${CUDAToolkit_INCLUDE_DIRS} )
 
-set(ORIS_AI_PATH "/workspace/orisairt/pkg/oris_ai/ORIS_AI")
+set(ORIS_AI_PATH "/workspace/liborl/drivers/dev_cc/pkg/oris_ai/ORIS_AI")
 include_directories(
     ${ORIS_AI_PATH}/include
     ${ORIS_AI_PATH}/build/protobuf
@@ -72,6 +72,34 @@ set(SEG_TST_SRCS
     src/oris_orl_types.cc
 )
 
+set(LIB_ORIS_ORL_SRCS
+    src/oris_orl_driver.cc
+    src/oris_orl_types.cc    
+    src/oris_orl_config.cc
+    src/oris_orl_cv_support.cc
+    src/oris_orl_yolo_support.cc
+)
+
+add_library(oris_orl STATIC ${LIB_ORIS_ORL_SRCS})
+
+target_include_directories(oris_orl
+    PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/include     # 예: include 디렉토리에 헤더가 있는 경우
+        /usr/include/opencv4
+        /usr/local/cuda
+#        ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty  # 예: 외부 헤더들
+)
+
+target_link_libraries(oris_orl
+     PRIVATE
+     fmt
+     opencv_highgui
+     opencv_imgproc
+     opencv_core
+)
+
+
+
 add_library(oris_ai_driver SHARED ${ORISAI_SRCS})
 target_link_libraries(oris_ai_driver 
     ORISCore
@@ -107,7 +135,7 @@ target_link_libraries(yolo_test_seg
     ${OpenCV_LIBS}
 )
 
-install(TARGETS oris_ai_driver oris_trt_driver driver_example
+install(TARGETS oris_ai_driver oris_trt_driver driver_example oris_orl
          ARCHIVE DESTINATION lib
          LIBRARY DESTINATION lib
          RUNTIME DESTINATION bin)
