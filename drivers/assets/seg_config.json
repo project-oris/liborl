@@ -1,0 +1,18 @@
+{
+    "model": "yolov8",
+    "task" : "detection",
+    "device": "gpu",
+    "engine": "trt",
+    "model_path": "../assets/yolo11n-seg-nms.engine",
+    "model_file_type": "trt",
+    "driver_path": "./liboris_trt_driver.so",
+    "yolo": {
+        "nms": true,
+        "tochw": true
+    },
+    "tensor" : {
+        "input_shape": "(640,640)",
+        "normalization": true,
+        "normalization_base": 255.0
+    }
+}
