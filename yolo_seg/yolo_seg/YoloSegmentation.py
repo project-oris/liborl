@@ -24,17 +24,7 @@ from oris_orl_py import (
 from std_msgs.msg import String
 
 
-# class_names = ['person', 'bicycle', 'car', 'motorcycle', 'airplane', 'bus', 'train', 'truck', 'boat', 'traffic light',
-#                'fire hydrant', 'stop sign', 'parking meter', 'bench', 'bird', 'cat', 'dog', 'horse', 'sheep', 'cow',
-#                'elephant', 'bear', 'zebra', 'giraffe', 'backpack', 'umbrella', 'handbag', 'tie', 'suitcase', 'frisbee',
-#                'skis', 'snowboard', 'sports ball', 'kite', 'baseball bat', 'baseball glove', 'skateboard', 'surfboard',
-#                'tennis racket', 'bottle', 'wine glass', 'cup', 'fork', 'knife', 'spoon', 'bowl', 'banana', 'apple',
-#                'sandwich', 'orange', 'broccoli', 'carrot', 'hot dog', 'pizza', 'donut', 'cake', 'chair', 'couch',
-#                'potted plant', 'bed', 'dining table', 'toilet', 'tv', 'laptop', 'mouse', 'remote', 'keyboard',
-#                'cell phone', 'microwave', 'oven', 'toaster', 'sink', 'refrigerator', 'book', 'clock', 'vase',
-#                'scissors', 'teddy bear', 'hair drier', 'toothbrush']
-
-class_names = ['person', 'car', 'ev charging station', 'cctv', 'gas station', 'bus', 'train', 'truck', 'boat', 'traffic light',
+class_names = ['person', 'bicycle', 'car', 'motorcycle', 'airplane', 'bus', 'train', 'truck', 'boat', 'traffic light',
                'fire hydrant', 'stop sign', 'parking meter', 'bench', 'bird', 'cat', 'dog', 'horse', 'sheep', 'cow',
                'elephant', 'bear', 'zebra', 'giraffe', 'backpack', 'umbrella', 'handbag', 'tie', 'suitcase', 'frisbee',
                'skis', 'snowboard', 'sports ball', 'kite', 'baseball bat', 'baseball glove', 'skateboard', 'surfboard',
@@ -42,11 +32,21 @@ class_names = ['person', 'car', 'ev charging station', 'cctv', 'gas station', 'b
                'sandwich', 'orange', 'broccoli', 'carrot', 'hot dog', 'pizza', 'donut', 'cake', 'chair', 'couch',
                'potted plant', 'bed', 'dining table', 'toilet', 'tv', 'laptop', 'mouse', 'remote', 'keyboard',
                'cell phone', 'microwave', 'oven', 'toaster', 'sink', 'refrigerator', 'book', 'clock', 'vase',
-               'scissors', 'teddy bear', 'hair drier', 'toothbrush']               
+               'scissors', 'teddy bear', 'hair drier', 'toothbrush']
 
-class YoloDetector(Node):
+# class_names = ['person', 'car', 'ev charging station', 'cctv', 'gas station', 'bus', 'train', 'truck', 'boat', 'traffic light',
+#                'fire hydrant', 'stop sign', 'parking meter', 'bench', 'bird', 'cat', 'dog', 'horse', 'sheep', 'cow',
+#                'elephant', 'bear', 'zebra', 'giraffe', 'backpack', 'umbrella', 'handbag', 'tie', 'suitcase', 'frisbee',
+#                'skis', 'snowboard', 'sports ball', 'kite', 'baseball bat', 'baseball glove', 'skateboard', 'surfboard',
+#                'tennis racket', 'bottle', 'wine glass', 'cup', 'fork', 'knife', 'spoon', 'bowl', 'banana', 'apple',
+#                'sandwich', 'orange', 'broccoli', 'carrot', 'hot dog', 'pizza', 'donut', 'cake', 'chair', 'couch',
+#                'potted plant', 'bed', 'dining table', 'toilet', 'tv', 'laptop', 'mouse', 'remote', 'keyboard',
+#                'cell phone', 'microwave', 'oven', 'toaster', 'sink', 'refrigerator', 'book', 'clock', 'vase',
+#                'scissors', 'teddy bear', 'hair drier', 'toothbrush']               
+
+class YoloSegmentation(Node):
     def __init__(self):
-        super().__init__('video_publisher')
+        super().__init__('yolo_seg')
         self.declare_parameter("config_path", "./config.json")
         self.declare_parameter("input_topic", "camera/image_raw")
 
@@ -72,8 +72,8 @@ class YoloDetector(Node):
 
         qos = QoSProfile(depth=10)
 
-        self.publisher_ = self.create_publisher(String, "detect_results/data", qos) # json dump string
-        self.img_publisher_ = self.create_publisher(Image, "detect_results/image", qos) # json dump string
+        self.publisher_ = self.create_publisher(String, "seg_results/data", qos) # json dump string
+        self.img_publisher_ = self.create_publisher(Image, "seg_results/image", qos) # json dump string
         self.img_sub = self.create_subscription(Image, input_topic_name, self.image_callback, qos)
         
     def image_callback(self, data):        
@@ -157,65 +157,73 @@ class YoloDetector(Node):
 
         return converted, t_img, ratio
 
-    def postprocess(self, input_image: np.ndarray, results: List[np.ndarray], ratio: float) -> np.ndarray:
+    def postprocess(self, results: List[np.ndarray], input_image: np.ndarray, org_image: np.ndarray, ratio: float):
         # Get the number of rows in the outputs array  
         results_data = []
-        for r in results:
+        detected = results[0]  # (300,38)
+        base_mask = results[1]  # (32, 160, 160)
+        mask_threshold = 0.5
+        result_image = input_image
+        overlay = input_image        
+
+        for r in detected:
+            pos = r[:4]
             c_score = r[4]
-            if c_score >0:
-                class_id = int(r[[5]])            
+            class_id = int(r[5])
+            if c_score >0 and class_id >=0 and class_id >=0 and class_id < len(self.classes):
+                mask_coeff = r[6:]                
+                mask_feature = (1.0 / (1.0 + np.exp(-np.einsum('i,ijk->jk',mask_coeff, base_mask))))
+                #self.get_logger().info(f"mask feature ${mask_feature.shape}")
+                re_mask =cv2.resize(mask_feature, (input_image.shape[0], input_image.shape[1]), interpolation=cv2.INTER_LINEAR)
 
-                fx1 = float(min(abs(int(r[0] * ratio)), self.img_width)) / float(self.img_width)
-                fy1 = float(min(abs(int(r[1] * ratio)), self.img_height)) / float(self.img_height) 
-                fx2 = float(min(abs(int(r[2] * ratio)), self.img_width)) / float(self.img_width) 
-                fy2 = float(min(abs(int(r[3] * ratio)), self.img_height)) / float(self.img_height)
+                binary_mask = np.zeros(re_mask.shape, dtype=np.uint8)
+                roi_x1 = int(max(0, pos[0]))
+                roi_y1 = int(max(0, pos[1]))
+                roi_x2 = int(min(re_mask.shape[1], pos[2]))
+                roi_y2 = int(min(re_mask.shape[0], pos[3]))
+                #self.get_logger().info(f"pos... {roi_x1},{roi_y1},{roi_x2},{roi_y2}")
+                
 
-                x1 = int(fx1*input_image.shape[1])            
-                y1 = int(fy1*input_image.shape[0])
-                x2 = int(fx2*input_image.shape[1])
-                y2 = int(fy2*input_image.shape[0])                   
+                if roi_x2 > roi_x1 and roi_y2 > roi_y1:    
+                    #self.get_logger().info(f"pos... {roi_x1},{roi_y1},{roi_x2},{roi_y2}")
+                    roi_re_mask = re_mask[roi_y1:roi_y2, roi_x1:roi_x2]                    
+                    _, roi_binary_mask = cv2.threshold(roi_re_mask, mask_threshold, 255, cv2.THRESH_BINARY)                    
+                    binary_mask[roi_y1:roi_y2, roi_x1:roi_x2] = roi_binary_mask
 
-                result_item = { "class_id" : self.classes[class_id], 
-                    "x1" :  round(fx1, 7),
-                    "y1" :  round(fy1, 7),
-                    "x2" :  round(fx2, 7),
-                    "y2" :  round(fy2, 7),
-                    "confidence" : round(float(c_score), 7)}
-
-                results_data.append(result_item)
-
+                contours, hierarchy = cv2.findContours(binary_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
                 color = self.color_palette[class_id]
-                cv2.rectangle(input_image, (x1,y1), (x2,y2), color, 2)
-                label = f"{self.classes[class_id]}: {c_score:.2f}"
+                for i in range(len(contours)):
+                    cv2.drawContours(overlay, contours, i, color, cv2.FILLED, cv2.LINE_8, hierarchy, 0)
+                alpha = 0.3
+                result_image = cv2.addWeighted(overlay, alpha, result_image, 1 - alpha, 0)
+                
+                #self.get_logger().info(f"binary_mask feature ${binary_mask.shape}")
+                #result_image = cv2.cvtColor(binary_mask, cv2.COLOR_GRAY2RGB)
 
-                (label_width, label_height), _ = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.5, 1)
-                label_x = x1
-                label_y = y1 - 10 if y1 - 10 > label_height else y1 + 10
-                cv2.rectangle(
-                input_image, (label_x, label_y - label_height), (label_x + label_width, label_y + label_height), color, cv2.FILLED
-                )
+        # self.get_logger().info(f"detected .. ${detected.shape}")
+        # self.get_logger().info(f"base_mask .. ${base_mask.shape}")
 
-                cv2.putText(input_image, label, (label_x, label_y), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 1, cv2.LINE_AA)            
 
-        return results_data, input_image
+
+        return results_data, result_image
 
     def infer(self, img):
-        img_data, snap_data, ratio = self.preprocess(img)
-        results = run_infer(self.driver, [img_data])        
-        resultData, out_img = self.postprocess(snap_data, results[0], ratio)
+        converted_img, snap_data, ratio = self.preprocess(img)
+        results = run_infer(self.driver, [converted_img])        
+        resultData, out_img = self.postprocess(results, converted_img, img, ratio)
 
         data_msg = String()
         data_msg.data = json.dumps(resultData)
-        print(data_msg.data)
+        #print(data_msg.data)
         self.publisher_.publish(data_msg)
         img_msg = self.bridge_.cv2_to_imgmsg(np.ascontiguousarray(out_img), encoding="rgb8") 
         self.img_publisher_.publish(img_msg)
 
 def main(args=None):
     rclpy.init(args=args)    
-    yolo_detector = YoloDetector()
-    rclpy.spin(yolo_detector)
-    yolo_detector.destroy_node()
+    yolo_seg = YoloSegmentation()
+    rclpy.spin(yolo_seg)
+    yolo_seg.destroy_node()
     rclpy.shutdown()
 
 if __name__ == '__main__':

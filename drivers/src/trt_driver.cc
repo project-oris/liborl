@@ -82,6 +82,10 @@ void _check_cuda_error_code(cudaError_t code)
   }
 }
 
+/*
+use the cudaIpcGetMemHandle() function 
+to obtain an IPC handle to a memory pointer allocated with cudaMalloc.
+*/
 inline void *_trt_cuda_alloc(size_t memSize)
 {
   void *deviceMem;

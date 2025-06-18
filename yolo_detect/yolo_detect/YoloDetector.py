@@ -46,7 +46,7 @@ class_names = ['person', 'car', 'ev charging station', 'cctv', 'gas station', 'b
 
 class YoloDetector(Node):
     def __init__(self):
-        super().__init__('video_publisher')
+        super().__init__('yolo_detect')
         self.declare_parameter("config_path", "./config.json")
         self.declare_parameter("input_topic", "camera/image_raw")
 
