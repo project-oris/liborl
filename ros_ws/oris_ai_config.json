@@ -1,0 +1,21 @@
+{
+    "model": "yolov8n",
+    "task" : "detection",
+    "device": "cpu",
+    "engine": "orisai",
+    "model_path": "./assets/yolov8n_oris_bn_merged_custom_5class.pb",
+    "model_file_type": "orisai",
+    "driver_path": "./assets/liboris_ai_driver.so",
+    "orisai": {
+        "normalization_value": 255.0
+    },
+    "yolo": {
+        "nms": false,
+        "tochw": false
+    },
+    "tensor" : {
+        "input_shape": "(384,640)",
+        "normalization": false,
+        "normalization_base": 255.0
+    }
+}
