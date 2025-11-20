@@ -9,5 +9,4 @@ dev_ws/
 *.pt
 *.png
 *.mp4
-ros_ws/
 rostest/
