@@ -74,6 +74,19 @@ $ ros2 launch oris_ai_runner oris_ai_run_launch.xml config_path:=<mp4 directory>
 
 ```
 
+#### View ROS2 video topics
+
+The ROS topics posted by ORIS-AI-Run Demo can be checked using ROS2's RQt.
+
+How to use RQt can be found in https://docs.ros.org/en/humble/Concepts/Intermediate/About-RQt.html
+
+
+```
+sudo apt install ros-<distro>-rqt*
+
+rqt
+```
+
 <div align="center">
   <img src="./demo/oris_ai_run_screen_shot.png" width="50%" alt="ORIS AI Run demo">
     <p><em> Object detection demo in real-time video</em></p>
