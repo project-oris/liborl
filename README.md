@@ -73,6 +73,13 @@ $ ros2 launch oris_ai_runner oris_ai_run_launch.xml config_path:=./config.json v
 $ ros2 launch oris_ai_runner oris_ai_run_launch.xml config_path:=<mp4 directory>/input1.mp4
 
 ```
+
+<div align="center">
+  <img src="./demo/oris_ai_run_screen_shot.png" width="50%" alt="ORIS AI Run demo">
+    <p><em> Object detection demo in real-time video</em></p>
+</div>
+
+
 ## Acknowledgement
 
 This work was supported by Institute of Information & communications Technology Planning & Evaluation (IITP) grant funded by the Korea government(MSIT) (No. 2024-00339187, Core Technology Development of On-device Robot Intelligence SW Platform).

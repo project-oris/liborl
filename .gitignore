@@ -7,6 +7,5 @@ dev_ws/
 *.so
 *.pb
 *.pt
-*.png
 *.mp4
 rostest/
